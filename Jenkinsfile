@@ -4,11 +4,19 @@ node {
   }
 
   stage('Build App') {
-    sh 'docker run --rm -t -u $(id -u) -w $(pwd) -v $(pwd):$(pwd) -e MAVEN_CONFIG=$(pwd)/.m2 maven:3.6.3 mvn -Duser.home=$(pwd) clean install'
+    docker.image('maven:3.6-jdk-8-alpine').inside('--network ci') {
+      sh 'mvn clean install'
+    }
     step([$class: 'JUnitResultArchiver', allowEmptyResults: true, healthScaleFactor: 20, testResults: '**/target/surefire-reports/*.xml'])
   }
 
   if (env.BRANCH_NAME ==~ 'master|develop|release-.*') {
+
+    stage('push package to repository') {
+      docker.image('maven:3.6-jdk-8-alpine').inside('--network ci') {
+        sh 'mvn deploy -DaltDeploymentRepository=nexus-snapshots::default::http://nexus:8081/repository/maven-snapshots/'
+      }
+    }
 
     stage('build docker image'){
       sh 'docker build -t simple-springboot-app .'
