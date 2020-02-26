@@ -1,10 +1,10 @@
 node {
-  stage('Checkout project') { 
+  stage('Checkout project') {
     checkout scm
   }
 
   stage('Build App') {
-    docker.image('maven:3.6-jdk-8-alpine').inside('--network ci') {
+    docker.image('maven:3.6-jdk-8-alpine').inside {
       sh 'mvn clean install'
     }
     step([$class: 'JUnitResultArchiver', allowEmptyResults: true, healthScaleFactor: 20, testResults: '**/target/surefire-reports/*.xml'])
@@ -13,7 +13,7 @@ node {
   if (env.BRANCH_NAME ==~ 'master|develop|release-.*') {
 
     stage('push package to repository'){
-      docker.image('maven:3.6-jdk-8-alpine').inside('--network ci') {
+      docker.image('maven:3.6-jdk-8-alpine').inside {
         sh 'mvn deploy -DaltDeploymentRepository=nexus-snapshots::default::http://nexus:8081/repository/maven-snapshots/'
       }
     }
@@ -31,7 +31,7 @@ node {
     }
 
     stage('SonarQube analysis') {
-      docker.image('maven:3.6-jdk-8-alpine').inside('--network ci') {
+      docker.image('maven:3.6-jdk-8-alpine').inside {
         withSonarQubeEnv('sonarqube') {
           sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.6.0.1398:sonar'
         }
